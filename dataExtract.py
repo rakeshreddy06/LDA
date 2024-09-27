@@ -18,3 +18,6 @@ def calculateMean(data):
 for specie, data in speciesData.items():
     dataMeanValues[specie] = calculateMean(data)
 
+def calculateInClassScatter():
+    
+
