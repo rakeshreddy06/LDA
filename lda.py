@@ -1,40 +1,110 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Our playground data: [number of kids, noise level]
-playground_data = np.array([
-  [2, 3],  # Swing area
-  [4, 5],  # Slide area
-  [1, 1],  # Sandbox
-  [5, 4]   # Monkey bars
-])
 
-# Calculate the special directions (eigenvectors)
-covariance_matrix = np.cov(playground_data.T)
-eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
 
-# Plot our playground data
-plt.figure(figsize=(10, 8))
-plt.scatter(playground_data[:, 0], playground_data[:, 1], 
-          c=['red', 'blue', 'green', 'purple'], 
-          label=['Swings', 'Slide', 'Sandbox', 'Monkey bars'])
 
-# Plot our special arrows (eigenvectors)
-for i in range(2):
-  plt.arrow(np.mean(playground_data[:, 0]), np.mean(playground_data[:, 1]), 
-            eigenvectors[0, i]*eigenvalues[i], eigenvectors[1, i]*eigenvalues[i], 
-            head_width=0.1, head_length=0.2, fc='k', ec='k', 
-            label=f'Special Direction {i+1}')
 
-plt.xlabel('Number of Kids')
-plt.ylabel('Noise Level')
-plt.title('Playground Activity Map')
+def manual_train_test_split(X, y, test_size=0.2, random_state=None):
+    if random_state is not None:
+        np.random.seed(random_state)
+    
+    indices = np.random.permutation(len(X))
+    test_size = int(len(X) * test_size)
+    train_indices = indices[test_size:]
+    test_indices = indices[:test_size]
+    
+    return X[train_indices], X[test_indices], y[train_indices], y[test_indices]
+
+
+X_train, X_test, y_train, y_test = manual_train_test_split(X_synthetic, y_synthetic, test_size=0.2, random_state=42)
+
+
+def calculate_scatter_matrices(X_train, y_train):
+    speciesData = {label: X_train[y_train == label] for label in np.unique(y_train)}
+    dataMeanValues = {label: np.mean(speciesData[label], axis=0) for label in speciesData}
+
+   
+    MeanOverall = np.mean(X_train, axis=0).reshape(-1, 1)
+
+   
+    n_features = X_train.shape[1]
+    WithinScatterMtrx = np.zeros((n_features, n_features))
+    BetweenScatterMtrx = np.zeros((n_features, n_features))
+
+    
+    for label, class_data in speciesData.items():
+        n_i = class_data.shape[0]
+        class_mean = dataMeanValues[label].reshape(n_features, 1)
+        
+       
+        for sample in class_data:
+            sample = sample.reshape(n_features, 1)
+            WithinScatterMtrx += (sample - class_mean).dot((sample - class_mean).T)
+        
+       
+        mean_diff = class_mean - MeanOverall
+        BetweenScatterMtrx += n_i * mean_diff.dot(mean_diff.T)
+
+    return WithinScatterMtrx, BetweenScatterMtrx
+
+
+WithinScatterMtrx, BetweenScatterMtrx = calculate_scatter_matrices(X_train, y_train)
+
+
+EigenValues, EigenVectors = np.linalg.eig(np.linalg.inv(WithinScatterMtrx).dot(BetweenScatterMtrx))
+
+
+sorted_indices = np.argsort(-EigenValues)
+EigenValues = EigenValues[sorted_indices]
+EigenVectors = EigenVectors[:, sorted_indices]
+
+
+EV = EigenVectors[:, :2]
+
+
+X_train_lda = X_train.dot(EV)
+X_test_lda = X_test.dot(EV)
+
+
+print("Eigenvalues:\n", EigenValues)
+
+
+print("Projected training data (LDA):\n", X_train_lda)
+
+
+print("Projected testing data (LDA):\n", X_test_lda)
+
+
+plt.figure(figsize=(8, 6))
+for label in np.unique(y_train):
+    plt.scatter(X_train_lda[y_train == label, 0], X_train_lda[y_train == label, 1], label=f'Class {label}')
+plt.title('LDA Projection of Training Data')
+plt.xlabel('LD1')
+plt.ylabel('LD2')
 plt.legend()
-plt.grid(True)
 plt.show()
 
-print("How important each direction is (Eigenvalues):")
-print(eigenvalues)
 
-# Created/Modified files during execution:
-# None
+plt.figure(figsize=(8, 6))
+for label in np.unique(y_test):
+    plt.scatter(X_test_lda[y_test == label, 0], X_test_lda[y_test == label, 1], label=f'Class {label}')
+plt.title('LDA Projection of Testing Data')
+plt.xlabel('LD1')
+plt.ylabel('LD2')
+plt.legend()
+plt.show()
+
+
+
+#task done: 
+# 1) calculated eigen values and vectors.
+# 2) converted 2 dimensional to 1 D 
+# 3) removed iris dataset and added  randondom data generator for both training testing.
+# 4) added visualization using plots for both training and testing.
+
+#todo:
+#1) rename functions and variables in random data generator code.
+#2) add comments whereever you feel like
+#3) try to modify data generation logic in random data generation function like see whats noise parameter etc..
+#4) check if code works for k classes if not modify it for k classes
