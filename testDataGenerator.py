@@ -26,7 +26,7 @@ def main():
     parser.add_argument("-N", type = int, help="Number of samples")
     parser.add_argument("-f", type = int, help="Number of features")
     parser.add_argument("-c", type = int, help="Number of classes")
-    parser.add_argument("-seed", type=int, help="A seed to control randomness")
+    parser.add_argument("-seed", type=int, help="A seed to control randomnes")
     parser.add_argument("-output_file", type=str, help="Path to output file")
     args = parser.parse_args()
     X, y = generate_random_data(args.N, args.f, args.c, args.seed)
@@ -34,3 +34,4 @@ def main():
 
 if __name__=="__main__":
     main()
+
