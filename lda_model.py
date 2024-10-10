@@ -4,22 +4,28 @@ import pandas as pd
 
 
 class LDAModel:
-    def __init__(self, nComponents):
+    def __init__(self, nComponents, reg_param=1e-5):  # Add regularization parameter
         self.nComponents = nComponents
         self.Eigens = None
         self.classes_ = None
         self.classMeans = None
+        self.reg_param = reg_param  # Initialize the regularization parameter
 
     def fit(self, X, y):
         self.classes_ = np.unique(y)
         n_features = X.shape[1]
         WithinScatterMtrx, BetweenScatterMtrx = self.calculate_scatter_matrices(X, y)
 
+        # Add regularization to the diagonal of WithinScatterMtrx
+        WithinScatterMtrx += self.reg_param * np.eye(n_features)
+
+        # Perform the eigen decomposition
         eigenValues, eigenVectors = np.linalg.eig(np.linalg.inv(WithinScatterMtrx).dot(BetweenScatterMtrx))
         sorted_indices = np.argsort(-eigenValues.real)
         eigenValues = eigenValues.real[sorted_indices]
         eigenVectors = eigenVectors.real[:, sorted_indices]
 
+        # Select the top components
         if self.nComponents is not None:
             eigenVectors = eigenVectors[:, :self.nComponents]
         else:
@@ -28,10 +34,14 @@ class LDAModel:
 
         self.Eigens = eigenVectors
 
+        # Project data onto LDA components
         XLDA = X.dot(self.Eigens)
         self.classMeans = {cls: XLDA[y == cls].mean(axis=0) for cls in self.classes_}
 
         return self
+
+    # ... rest of the code remains unchanged
+
 
     def calculate_scatter_matrices(self, X_train, y_train):
         speciesData = {label: X_train[y_train == label] for label in np.unique(y_train)}

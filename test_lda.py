@@ -4,7 +4,6 @@ import pandas as pd
 from lda_model import LDAModel, RDAModelResults, plot_lda_projection
 import matplotlib.pyplot as plt
 
-
 # Function to generate synthetic data
 def generate_synthetic_data(n_samples_per_class=50, n_features=4, n_classes=3, seed=42):
     np.random.seed(seed)
@@ -20,6 +19,13 @@ def generate_synthetic_data(n_samples_per_class=50, n_features=4, n_classes=3, s
 
     return X, y
 
+def parse_numpy_array(data_array):
+    # Convert input from string format to NumPy array
+    data_array = list(map(float, data_array))
+    n_features = (len(data_array) // 2) - 1
+    X = np.array(data_array).reshape(-1, n_features + 1)
+    X, y = X[:, :-1], X[:, -1]
+    return X, y
 
 def plot_true_vs_predicted(XLDA, true_labels, predicted_labels):
     """
@@ -45,11 +51,11 @@ def plot_true_vs_predicted(XLDA, true_labels, predicted_labels):
 
     plt.show()
 
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', choices=['synthetic', 'csv'], required=True, help='Type of data to test the model on')
+    parser.add_argument('--data', choices=['synthetic', 'csv', 'array'], required=True, help='Type of data to test the model on')
     parser.add_argument('--file', type=str, help='Path to the CSV file (required if data type is csv)')
+    parser.add_argument('--data_array', nargs='+', help='Data points for array input (required if data type is array)')
     parser.add_argument('--n_components', type=int, default=2, help='Number of components to project onto')
     parser.add_argument('--n_samples', type=int, default=50, help='Number of samples per class for synthetic data')
     parser.add_argument('--n_features', type=int, default=4, help='Number of features for synthetic data')
@@ -66,6 +72,10 @@ def main():
         df = pd.read_csv(args.file, header=None)
         X = df.iloc[:, :-1].values
         y = df.iloc[:, -1].values
+    elif args.data == 'array':
+        if not args.data_array:
+            raise ValueError("Data array must be provided for 'array' data type.")
+        X, y = parse_numpy_array(args.data_array)
 
     # Create LDA model
     model = LDAModel(nComponents=args.n_components)
